@@ -102,7 +102,8 @@ if inputF then
     
     checkForMods(fpath, src)
 else
-    print("[ERROR]: File not found")
+    print("[ERROR]: File '"..input.."' not found")
+    return
 end
 
 if not output then
