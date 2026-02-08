@@ -23,6 +23,55 @@ local require = (function(_ENV)
     end
 end)(_ENV or getfenv())
 
+package.preload["./options"] = function(_ENV, ...)
+    local function mod(_ENV, ...)
+-- rewritte the code to be better (some day)
+local ipairs = ipairs
+local table_remove = table.remove
+
+local options = {}
+local long_options = {}
+
+local module = {
+    options = options,
+    long_options = long_options
+}
+
+local function handle_opt(opts, Arg)
+    local optL = #opts
+    local res
+    for i = optL, 1, -1 do
+        local optN = opts:sub(i, i)
+        res = options[optN](res or Arg) or ""
+    end
+end
+
+function module.doOptions(arg)
+    for optI, optN in ipairs(arg) do
+        if optN:sub(1, 1) == "-" then
+            local Arg = arg[optI + 1]
+            local carg = (Arg and Arg or "-"):sub(1, 1) ~= "-" and Arg
+            if carg then
+                table_remove(arg, optI + 1)
+            end
+            
+            if optN:sub(2, 2) == "-" then
+                long_options[optN](carg)
+            else
+                handle_opt(optN:sub(2, -1), carg)
+            end
+        end
+    end
+end
+
+return module
+    end
+    if setfenv then
+        setfenv(mod, _ENV)
+    end
+
+    return mod(_ENV, ...)
+end
 package.preload["./SBundler"] = function(_ENV, ...)
     local function mod(_ENV, ...)
 local error = error
@@ -126,55 +175,6 @@ return SBundler
 
     return mod(_ENV, ...)
 end
-package.preload["./options"] = function(_ENV, ...)
-    local function mod(_ENV, ...)
--- rewritte the code to be better (some day)
-local ipairs = ipairs
-local table_remove = table.remove
-
-local options = {}
-local long_options = {}
-
-local module = {
-    options = options,
-    long_options = long_options
-}
-
-local function handle_opt(opts, Arg)
-    local optL = #opts
-    local res
-    for i = optL, 1, -1 do
-        local optN = opts:sub(i, i)
-        res = options[optN](res or Arg) or ""
-    end
-end
-
-function module.doOptions(arg)
-    for optI, optN in ipairs(arg) do
-        if optN:sub(1, 1) == "-" then
-            local Arg = arg[optI + 1]
-            local carg = (Arg and Arg or "-"):sub(1, 1) ~= "-" and Arg
-            if carg then
-                table_remove(arg, optI + 1)
-            end
-            
-            if optN:sub(2, 2) == "-" then
-                long_options[optN](carg)
-            else
-                handle_opt(optN:sub(2, -1), carg)
-            end
-        end
-    end
-end
-
-return module
-    end
-    if setfenv then
-        setfenv(mod, _ENV)
-    end
-
-    return mod(_ENV, ...)
-end
 local f = string.format
 local io_open = io.open
 local io_read = io.read
@@ -182,6 +182,7 @@ local ipairs = ipairs
 local next = next
 local print = print
 local require = require
+local select = select
 local table_concat = table.concat
 
 local requireMatches = {

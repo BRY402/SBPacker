@@ -5,6 +5,7 @@ local ipairs = ipairs
 local next = next
 local print = print
 local require = require
+local select = select
 local table_concat = table.concat
 
 local requireMatches = {
