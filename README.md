@@ -25,10 +25,12 @@ and the builder builds it wrong, it's your fault.
 
 * By default, each source container has its own separate coroutine thread. If a source container throws an error, the whole program won't crash, and instead only said source container that threw the error(and possibly others that depend on it) will fail.
 * To change the behavior from script to module (so that errors are in the same coroutine thread) you have to specify the source container as a module by adding a comment with a dollar sign in front of the require call.
-> Example: require("foo") --$\
+> Example: require("foo") --$
+
 
 * To silence warnings on modules you don't want the builder to check for, just add a comment with an exclamation mark in front of the require call.
-> Example: require("foo") --!\
+> Example: require("foo") --!
+
 
 * The following is a list of all require modes (must be in a comment in front of the require call, multiple modes can be defined inside the same comment):
 
