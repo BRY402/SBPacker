@@ -32,19 +32,19 @@ and the builder builds it wrong, it's your fault.
 
 * The following is a list of all require modes (must be in a comment in front of the require call, multiple modes can be defined inside the same comment):
 
-1. ! = ignore
+1. ! = ignore\
 source containers marked by this will not be included in the final build
 
-2. @ = script
+3. @ = script\
 source containers marked by this will be treated as scripts (default) and will not crash the calling thread on fail (the returned value is still received by the require call)
 
-3. $ = module
+4. $ = module\
 source containers marked by this will be treated as modules and will crash the calling thread on fail
 
-4. ? = optional
+5. ? = optional\
 source containers marked by this are optional and will not error when missing
 
-5. \* = obligatory(dependency)
+6. \* = obligatory(dependency)\
 source containers marked by this are obligatory and will stop the building process if missing
 
 ## Usage
