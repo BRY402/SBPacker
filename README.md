@@ -1,5 +1,5 @@
-# SBundler
-A Lua bundler for Roblox script builders
+# SBPacker
+A Lua packer for Roblox script builders
 
 ## Why I made this
 * Sometimes, I have some scripts that are better separated. This code allows me to join them (and have them working as intended) without modifying a single byte of code.
@@ -30,10 +30,10 @@ and the builder builds it wrong, it's your fault.
 
 
 ## Usage
-You can build a Lua bundle in a bash terminal using:
+You can build a Lua pack in a bash terminal using:
 ``
-cd SBundler;
+cd SBPacker;
 lua init.lua -i ../yourInitFile.lua -o ../outputFile.lua
 ``
 
-Or, you can copy the SBundle.lua file into your system and run it in a bash terminal with `lua SBundle.lua -i yourInitFile.lua -o outputFile.lua`
+Alternatively, you can copy the SBundle.lua file into your system and run it in a bash terminal with `lua SBPack.lua -i yourInitFile.lua -o outputFile.lua`
