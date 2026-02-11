@@ -1,3 +1,4 @@
+-- @scriptdef: script
 -- rewritte the code to be better (some day)
 local ipairs = ipairs
 local table_remove = table.remove

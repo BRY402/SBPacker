@@ -1,3 +1,4 @@
+-- @scriptdef: module
 local error = error
 local f = string.format
 local next = next
@@ -5,27 +6,50 @@ local table_concat = table.concat
 local tostring = tostring
 local type = type
 
-local SBPacker = {
-    init = "",
-    modules = {},
-    scripts = {}
+local SBPack = {
+    sources = {
+        init = "",
+        beforeBuild = ""
+    },
+    sourcecontainers = {
+        module = {},
+        script = {}
+    }
 }
 
 
-function SBPacker:onStart(code)
+function SBPack:setInit(code)
     if type(code) ~= "string" then
         error("Invalid initialization source, expected string", 2)
     end
     
-    SBPacker.init = code
+    SBPack.sources.init = code
+end
+
+function SBPack:beforeBuild(code)
+    if type(code) ~= "string" then
+        error("Invalid source for start of build, expected string", 2)
+    end
+    
+    SBPack.sources.beforeBuild = code
 end
 
 
-function SBPacker:clear()
-    self.modules = {}
+function SBPack:clear(containerName)
+    if not containerName then
+        for i, _ in next, self.sourcecontainers do
+            self.sourcecontainers[i] = {}
+        end
+        
+        return
+    end
+    
+    if self.sourcecontainers[tostring(containerName)] then
+        self.sourcecontainers[tostring(containerName)] = {}
+    end
 end
 
-function SBPacker:generate()
+function SBPack:generate()
     local src = {
         [[
 local coroutine = coroutine
@@ -55,28 +79,41 @@ local require = (function(_ENV)
     end
 end)(_ENV or getfenv())
 ]],
+        SBPack.sources.beforeBuild
     }
     
-    for _, modsrc in next, SBPacker.modules do
-        src[#src + 1] = modsrc
-    end
-    for _, scriptsrc in next, SBPacker.scripts do
-        src[#src + 1] = scriptsrc
+    for _, container in next, SBPack.sourcecontainers do
+        for _, source in next, container do
+            src[#src + 1] = source
+        end
     end
     
-    src[#src + 1] = SBPacker.init
+    src[#src + 1] = SBPack.sources.init
     
     return table_concat(src, "\n")
 end
 
-
-function SBPacker:addMod(modname, Source)
+function SBPack:createContainer(Name)
+    local Name = tostring(Name)
+    local container = self.sourcecontainers[Name] or {}
+    self.sourcecontainers[Name] = container
+    
+    return container
+end
+function SBPack:addSourceContainer(Type, Name, Source)
     if type(Source) ~= "string" then
         error("Invalid module source, expected string", 2)
     end
     
-    self.modules[tostring(modname)] = f([[
+    self.sourcecontainers[tostring(Type)][tostring(Name)] = f([[
 sb_package.preload[%q] = function(_ENV, ...)
+    %s
+end
+]], tostring(Name), Source)
+end
+
+function SBPack:addMod(modname, Source)
+    SBPack:addSourceContainer("module", modname, f([[
     local function mod(_ENV, ...)
 %s
     end
@@ -85,16 +122,11 @@ sb_package.preload[%q] = function(_ENV, ...)
     end
 
     return mod(_ENV, ...)
-end]], modname, Source)
+]], Source))
 end
 
-function SBPacker:addScript(scriptname, Source)
-    if type(Source) ~= "string" then
-        error("Invalid script source, expected string", 2)
-    end
-    
-    self.scripts[tostring(scriptname)] = f([[
-sb_package.preload[%q] = function(_ENV, ...)
+function SBPack:addScript(scriptname, Source)
+    SBPack:addSourceContainer("script", scriptname, f([[
     local function mod(_ENV, ...)
 %s
     end
@@ -111,20 +143,24 @@ sb_package.preload[%q] = function(_ENV, ...)
     end
 
     return result
-end]], scriptname, Source)
+]], Source))
 end
 
-function SBPacker:removeMod(modname)
-    self.modules[tostring(modname)] = nil
+function SBPack:removeMod(modname)
+    self.sourcecontainers.module[tostring(modname)] = nil
 end
 
-function SBPacker:removeScript(scriptname)
-    self.scripts[tostring(scriptname)] = nil
+function SBPack:removeScript(scriptname)
+    self.sourcecontainers.script[tostring(scriptname)] = nil
 end
 
-function SBPacker:hasSourceContainer(name)
-    return self.modules[tostring(name)] ~= nil or self.scripts[tostring(name)] ~= nil
+function SBPack:hasSourceContainer(name)
+    for _, container in next, self.sourcecontainers do
+        if container[tostring(name)] ~= nil then
+            return true
+        end
+    end
 end
 
 
-return SBPacker
+return SBPack

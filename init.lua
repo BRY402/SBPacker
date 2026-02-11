@@ -8,12 +8,17 @@ local require = require
 local select = select
 local table_concat = table.concat
 
-local modeMatch = "%s*%-*%s*([!@%$%?%*]*)"
+local modeMatch = "%s*%-*%s*([!%?%*]?)"
 local requireMatches = {
     "require%s*(%()(.-)[%),]"..modeMatch,
     "require%s*(['\"])([^\n]-)%1"..modeMatch,
     "require%s*%[(=*)%[(.-)%]%1%]"..modeMatch
 }
+local commentMatches = {
+    "%s*(%-%-)%s*([^\n]+)",
+    "%s*%-%-%[(=*)%[(.-)%]%1%]"
+}
+
 local function sanitize(target)
     return target:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
 end
@@ -24,8 +29,8 @@ local function unwrapStr(str)
     return str:sub((start or 0) + 1, (end_ or 0) - 1)
 end
 
-local packer = require("./SBPacker") -- $*
-local options = require("./options") -- @*
+local packer = require("./SBPack") -- *
+local options = require("./options") -- *
 local input
 local output
 local verbose
@@ -35,17 +40,37 @@ local function vprint(str, ...)
     end
 end
 
+packer:createContainer("localscript")
+packer:beforeBuild([[
+local NLS = NLS or function()
+    print("NLS is not supported in this script builder")
+end
+]])
+
+local containerTypes = {
+    module = function(modname, source)
+        packer:addMod(modname, source)
+    end,
+    
+    script = function(scriptName, source)
+        packer:addScript(scriptName, source)
+    end,
+    
+    localscript = function(name, source)
+        packer:addSourceContainer("localscript", name, f([[
+    NLS(%q, [==[%s]==])
+]], name, source))
+    end
+}
+
 local checkForMods
 local function buildMod(modname, mode, fullpath)
     local modname = unwrapStr(modname)
     local modpath = fullpath..modname
     
-    local ignore = mode:find("!")
-    local isScript = mode:find("@")
-    local isMod = mode:find("%$")
-    local silent = mode:find("%?")
-    local isDependency = mode:find("%*")
-    local none = #mode == 0
+    local ignore = mode == "!"
+    local silent = mode == "?"
+    local isDependency = mode == "*"
             
     if packer:hasSourceContainer(modname) or ignore then
         return false, 2
@@ -66,10 +91,26 @@ local function buildMod(modname, mode, fullpath)
     end
         
     local modsrc = modF:read("*a")
-    if isMod then
-        packer:addMod(modname, modsrc)
-    elseif isScript or none then
-        packer:addScript(modname, modsrc)
+    
+    local containerType
+    for _, matchstr in ipairs(commentMatches) do
+        if containerType then
+            break
+        end
+        
+        for _, content in modsrc:gmatch(matchstr) do
+            containerType = content:match("@scriptdef:%s*(%w+)")
+            
+            if containerType then
+                break
+            end
+        end
+    end
+    
+    if containerType then
+        containerTypes[containerType](modname, modsrc)
+    else
+        containerTypes.script(modname, modsrc)
     end
     
     vprint("Added module %q", modname)
@@ -150,7 +191,7 @@ local inputF = io_open(input, "r")
 if inputF then
     local src = inputF:read("*a")
     local fullpath = input:match(".*/") or "./"
-    packer:onStart(src)
+    packer:setInit(src)
     
     checkForMods(fullpath, src)
 else
