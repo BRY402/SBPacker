@@ -33,7 +33,7 @@ and the builder builds it wrong, it's your fault.
 
 * By default, each source container has its own separate coroutine thread. If a source container throws an error, the whole program won't crash, and instead only said source container that threw the error(and possibly others that depend on it) will fail.
 * To change the behavior from script to module (so that errors are in the same coroutine thread) you have to specify the source container as a module by adding a comment with context definition inside the file's source code
-> Example: (inside yourFile.lua) -- @scriptdef: module
+> Example: (inside yourFile.lua) -- @contextdef: module
 * Some supported behaviors this packer includes are:
 1. script (auto)
 2. module (auto)
