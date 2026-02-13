@@ -29,62 +29,6 @@ local NLS = NLS or function()
     print("NLS is not supported in this script builder")
 end
 
-sb_package.preload["./options"] = function(_ENV, ...)
-        local function mod(_ENV, ...)
--- @contextdef: script
--- rewritte the code to be better (some day)
-local ipairs = ipairs
-local table_remove = table.remove
-
-local options = {}
-local long_options = {}
-
-local module = {
-    options = options,
-    long_options = long_options
-}
-
-local function handle_opt(opts, Arg)
-    local optL = #opts
-    local res
-    for i = optL, 1, -1 do
-        local optN = opts:sub(i, i)
-        res = options[optN](res or Arg) or ""
-    end
-end
-
-function module.doOptions(arg)
-    for optI, optN in ipairs(arg) do
-        if optN:sub(1, 1) == "-" then
-            local Arg = arg[optI + 1]
-            local carg = (Arg and Arg or "-"):sub(1, 1) ~= "-" and Arg
-            if carg then
-                table_remove(arg, optI + 1)
-            end
-            
-            if optN:sub(2, 2) == "-" then
-                long_options[optN](carg)
-            else
-                handle_opt(optN:sub(2, -1), carg)
-            end
-        end
-    end
-end
-
-return module
-    end
-    
-    local thread = coroutine.create(setfenv and setfenv(mod, _ENV) or mod)
-    local success, result = coroutine.resume(thread, _ENV, ...)
-
-    if not success then
-        print(result)
-        return
-    end
-
-    return result
-end
-
 sb_package.preload["./SBPack"] = function(_ENV, ...)
         local function mod(_ENV, ...)
 -- @contextdef: module
@@ -130,7 +74,7 @@ end
 local SBPack = {
     sources = {
         init = "",
-        beforeBuild = ""
+        preBuild = ""
     },
     containers = {}
 }
@@ -140,8 +84,8 @@ function SBPack:setInit(code)
     SBPack.sources.init = assertString(code, "Invalid initialization source, expected string")
 end
 
-function SBPack:beforeBuild(code)
-    SBPack.sources.beforeBuild = assertString(code, "Invalid source for start of build, expected string")
+function SBPack:setPreBuild(code)
+    SBPack.sources.preBuild = assertString(code, "Invalid source for start of build, expected string")
 end
 
 function SBPack:createContainer(Name)
@@ -201,7 +145,7 @@ local require = (function(_ENV)
     end
 end)(_ENV or getfenv())
 ]],
-        SBPack.sources.beforeBuild
+        SBPack.sources.preBuild
     }
     
     for _, container in next, SBPack.containers do
@@ -265,6 +209,62 @@ return SBPack
     return (setfenv and setfenv(mod, _ENV) or mod)(_ENV, ...)
 end
 
+sb_package.preload["./options"] = function(_ENV, ...)
+        local function mod(_ENV, ...)
+-- @contextdef: script
+-- rewritte the code to be better (some day)
+local ipairs = ipairs
+local table_remove = table.remove
+
+local options = {}
+local long_options = {}
+
+local module = {
+    options = options,
+    long_options = long_options
+}
+
+local function handle_opt(opts, Arg)
+    local optL = #opts
+    local res
+    for i = optL, 1, -1 do
+        local optN = opts:sub(i, i)
+        res = options[optN](res or Arg) or ""
+    end
+end
+
+function module.doOptions(arg)
+    for optI, optN in ipairs(arg) do
+        if optN:sub(1, 1) == "-" then
+            local Arg = arg[optI + 1]
+            local carg = (Arg and Arg or "-"):sub(1, 1) ~= "-" and Arg
+            if carg then
+                table_remove(arg, optI + 1)
+            end
+            
+            if optN:sub(2, 2) == "-" then
+                long_options[optN](carg)
+            else
+                handle_opt(optN:sub(2, -1), carg)
+            end
+        end
+    end
+end
+
+return module
+    end
+    
+    local thread = coroutine.create(setfenv and setfenv(mod, _ENV) or mod)
+    local success, result = coroutine.resume(thread, _ENV, ...)
+
+    if not success then
+        print(result)
+        return
+    end
+
+    return result
+end
+
 local f = string.format
 local io_open = io.open
 local io_read = io.read
@@ -307,7 +307,7 @@ local function vprint(str, ...)
 end
 
 local lsContainer = packer:createContainer("localscript")
-packer:beforeBuild([[
+packer:setPreBuild([[
 local NLS = NLS or function()
     print("NLS is not supported in this script builder")
 end

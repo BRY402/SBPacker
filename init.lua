@@ -40,7 +40,7 @@ local function vprint(str, ...)
 end
 
 local lsContainer = packer:createContainer("localscript")
-packer:beforeBuild([[
+packer:setPreBuild([[
 local NLS = NLS or function()
     print("NLS is not supported in this script builder")
 end
