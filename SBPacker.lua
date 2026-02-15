@@ -206,7 +206,16 @@ end
 
 return SBPack
     end
-    return (setfenv and setfenv(mod, _ENV) or mod)(_ENV, ...)
+    
+    local thread = coroutine.create(setfenv and setfenv(mod, _ENV) or mod)
+    local success, result = coroutine.resume(thread, _ENV, ...)
+
+    if not success then
+        print(result)
+        return
+    end
+
+    return result
 end
 
 sb_package.preload["./options"] = function(_ENV, ...)
@@ -285,7 +294,8 @@ local commentMatches = {
     "%s*(%-%-)%s*([^\n]+)",
     "%s*%-%-%s*%[(=*)%[(.-)%]%1%]"
 }
-local contextMatch = "@contextdef:%s*([^\n]+)"
+
+local contextMatch = "@runcontext:%s*([^\n]+)"
 
 local function sanitize(target)
     return target:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
