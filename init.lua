@@ -18,7 +18,8 @@ local commentMatches = {
     "%s*(%-%-)%s*([^\n]+)",
     "%s*%-%-%s*%[(=*)%[(.-)%]%1%]"
 }
-local contextMatch = "@contextdef:%s*([^\n]+)"
+
+local contextMatch = "@runcontext:%s*([^\n]+)"
 
 local function sanitize(target)
     return target:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
