@@ -87,6 +87,7 @@ function SBPack:generate()
         [[
 local coroutine = coroutine
 local sb_package = {preload = {}}
+local sb_shared = {}
 local print = print
 
 local require = (function(_ENV)
@@ -147,11 +148,11 @@ function SBPack:newScript(scriptname, Source)
     local success, result = coroutine.resume(thread, _ENV, ...)
 
     if not success then
-        print(result)
+        print("\"%s\":", result)
         return
     end
 
-    return result]], Source))
+    return result]], Source, scriptname))
 end
 
 function SBPack:removeMod(modname)
